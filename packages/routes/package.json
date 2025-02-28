@@ -1,0 +1,33 @@
+{
+  "name": "@dabobo/routes",
+  "version": "2.0.0",
+  "description": "Create Routes That The Path Is The File Location",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abcrun/dabobo-toolkit",
+    "directory": "packages/routes"
+  },
+  "main": "index.js",
+  "types": "types/index.d.ts",
+  "author": "hrdesign@163.com",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "Front End Engineering Scaffold",
+    "Auto Generate Router",
+    "Router",
+    "Layout",
+    "Build",
+    "Webpack",
+    "React",
+    "Vue"
+  ],
+  "devDependencies": {
+    "@types/webpack-env": "^1.18.8"
+  },
+  "bugs": {
+    "url": "https://github.com/abcrun/dabobo-toolkit/issues"
+  }
+}

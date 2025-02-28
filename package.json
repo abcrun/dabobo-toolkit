@@ -1,0 +1,39 @@
+{
+  "name": "dabobo-toolkit",
+  "version": "0.1.0",
+  "description": "dabobo工具集",
+  "scripts": {
+    "lint": "eslint . --fix --ext .js,.json",
+    "prettier": "prettier --write"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -e $HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "*.{js,json}": [
+      "prettier --write",
+      "eslint"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.2"
+  },
+  "author": "hrdesign@163.com",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
