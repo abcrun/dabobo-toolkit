@@ -1,6 +1,6 @@
 {
   "name": "@dabobo/routes",
-  "version": "2.0.0",
+  "version": "2.0.0-rc.1",
   "description": "Create Routes That The Path Is The File Location",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
     "Vue"
   ],
   "devDependencies": {
-    "@types/webpack-env": "^1.18.8"
+    "webpack-env": "^0.8.0"
   },
   "bugs": {
     "url": "https://github.com/abcrun/dabobo-toolkit/issues"

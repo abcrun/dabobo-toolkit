@@ -2,10 +2,6 @@
   "name": "dabobo-toolkit",
   "version": "0.1.0",
   "description": "dabobo工具集",
-  "scripts": {
-    "lint": "eslint . --fix --ext .js,.json",
-    "prettier": "prettier --write"
-  },
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged",
@@ -23,8 +19,10 @@
     "@commitlint/config-conventional": "^19.7.1",
     "eslint": "^8.57.1",
     "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^10.0.2",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^4.6.2",
     "husky": "^9.1.7",
