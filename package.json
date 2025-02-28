@@ -2,6 +2,9 @@
   "name": "dabobo-toolkit",
   "version": "0.1.0",
   "description": "dabobo工具集",
+  "scripts": {
+    "prepare": "husky || true"
+  },
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged",
