@@ -23,15 +23,16 @@ function buildTreeJSON(items) {
 }
 
 export default function createRoutes(context, ...args) {
-  let reg = args[0];
-  let handler = args[1];
+  let reg = args[0]; // keys 过滤条件
+  let interceptor = args[1];
 
   if (typeof reg === 'function') {
-    handler = reg;
+    interceptor = reg;
     reg = null;
   }
 
-  const keys = context.keys();
+  const keys = context.keys ? context.keys() : Object.keys(context); // Object keys for vite -> import.metadata.glob('xxxx')
+
   const filters = reg ? keys.filter((key) => !reg.test(key)) : keys;
 
   const routesArray = filters.map((key, index) => {
@@ -83,14 +84,20 @@ export default function createRoutes(context, ...args) {
   let routesTreeArray = routesArray.map((route) => {
     const parentId = getParentId(route.path);
     const redirect = route.isLayout ? getRedirectPath(route.path) : null;
+    const component = context[route.key];
+
     const item = {
       ...route,
       parentId,
       redirect,
+      component,
     };
 
-    if (handler) {
-      item.component = handler(route.key);
+    if (interceptor) {
+      return {
+        ...item,
+        ...interceptor(item),
+      };
     }
 
     return item;
