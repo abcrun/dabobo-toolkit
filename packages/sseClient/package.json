@@ -1,0 +1,32 @@
+{
+  "name": "@dabobo/sse",
+  "version": "0.1.0-alpha.1",
+  "description": "Create Routes That The Path Is The File Location",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abcrun/dabobo-toolkit",
+    "directory": "packages/sseClient"
+  },
+  "main": "index.js",
+  "author": "hrdesign@163.com",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "Front End Engineering Scaffold",
+    "Auto Generate Router",
+    "Router",
+    "Layout",
+    "Build",
+    "Webpack",
+    "React",
+    "Vue"
+  ],
+  "devDependencies": {
+    "webpack-env": "^0.8.0"
+  },
+  "bugs": {
+    "url": "https://github.com/abcrun/dabobo-toolkit/issues"
+  }
+}
