@@ -37,7 +37,14 @@ export default class SSEClient {
         return;
       }
 
-      await this.processStream(response);
+      const contentType = response.headers.get('Content-Type') || '';
+      if (contentType.includes('text/event-stream')) {
+        await this.processStream(response);
+      } else if (contentType.includes('application/json')) {
+        const data = await response.json();
+        this.dispatchEvent('message', { data: JSON.stringify(data) });
+        this.handleClose();
+      }
     } catch (err) {
       this.handleError(err);
     } finally {
