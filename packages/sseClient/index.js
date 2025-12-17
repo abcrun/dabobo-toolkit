@@ -1,9 +1,12 @@
 export default class SSEClient {
-  constructor() {
-    this.eventHandlers = new Map();
+  constructor(url, options = {}) {
+    this.url = url;
+    this.options = options;
     this.controller = null;
-    this.reconnectInterval = 1000;
     this.lastEventId = null;
+
+    this.eventHandlers = new Map();
+    this.retrySchedule = [];
     this.isConnecting = false;
   }
 
@@ -15,20 +18,27 @@ export default class SSEClient {
     this.eventHandlers.delete(event);
   }
 
-  async connect(url, options = {}) {
+  clear() {
+    this.eventHandlers.clear();
+  }
+
+  async connect(eventId = null) {
     if (this.isConnecting) return;
     this.isConnecting = true;
 
     try {
       this.controller = new AbortController();
 
-      const response = await fetch(url, {
+      const headers = this.options.headers || {};
+      delete this.options.headers;
+
+      const response = await fetch(this.url, {
         method: 'POST',
-        ...options,
         signal: this.controller.signal,
+        ...this.options,
         headers: {
-          ...options.headers,
-          ...(this.lastEventId && { 'Last-Event-ID': this.lastEventId }),
+          ...headers,
+          'Last-Event-ID': eventId || this.lastEventId || '',
         },
       });
 
@@ -48,8 +58,25 @@ export default class SSEClient {
     } catch (err) {
       this.handleError(err);
     } finally {
-      this.isConnecting = false;
+      this.scheduleReconnect();
     }
+  }
+
+  scheduleReconnect() {
+    if (this.controller.signal.aborted || this.retrySchedule.length === 0) {
+      this.isConnecting = false;
+      return;
+    }
+
+    const lastRetry = this.retrySchedule.shift();
+    setTimeout(() => {
+      this.connect(lastRetry.id);
+
+      const retryHandler = this.eventHandlers.get('retry');
+      if (retryHandler) {
+        retryHandler(lastRetry);
+      }
+    }, lastRetry.retry);
   }
 
   // 流数据处理
@@ -81,12 +108,15 @@ export default class SSEClient {
   parseBuffer(buffer) {
     let eventEnd = buffer.indexOf('\n\n');
     let updatedBuffer = buffer;
+
     while (eventEnd !== -1) {
       const chunk = updatedBuffer.slice(0, eventEnd);
       updatedBuffer = updatedBuffer.slice(eventEnd + 2);
       this.parseEvent(chunk);
+
       eventEnd = updatedBuffer.indexOf('\n\n');
     }
+
     return updatedBuffer;
   }
 
@@ -97,6 +127,7 @@ export default class SSEClient {
       data: '',
       id: null,
       retry: null,
+      time: new Date().getTime(),
     };
 
     rawEvent.split('\n').forEach((line) => {
@@ -111,7 +142,7 @@ export default class SSEClient {
           eventType = value;
           break;
         case 'data':
-          eventData.data += `${value}\n`;
+          eventData.data += `${value}`;
           break;
         case 'id':
           eventData.id = value;
@@ -119,23 +150,16 @@ export default class SSEClient {
           break;
         case 'retry':
           eventData.retry = parseInt(value, 10);
-          if (!Number.isNaN(eventData.retry)) {
-            this.reconnectInterval = eventData.retry;
-          }
+          if (!Number.isNaN(eventData.retry))
+            this.retrySchedule.push(eventData);
           break;
         default:
           break;
       }
     });
 
-    // 如果收到流关闭事件，则客户端主动关闭连接
-    if (eventType === 'close') {
-      this.controller.abort();
-      this.handleClose(eventData);
-    } else {
-      eventData.data = eventData.data.trimEnd();
-      this.dispatchEvent(eventType, eventData);
-    }
+    eventData.data = eventData.data.trimEnd();
+    this.dispatchEvent(eventType, eventData);
   }
 
   // 事件分发
@@ -166,7 +190,8 @@ export default class SSEClient {
 
   // 中止连接
   abort() {
-    this.controller.abort();
+    this.controller?.abort();
+    this.retrySchedule = []; // 用户终止，清空重试队列
 
     const abortHandler = this.eventHandlers.get('abort');
     if (abortHandler) {
