@@ -20,6 +20,7 @@ export default class SSEClient {
 
   clear() {
     this.eventHandlers.clear();
+    this.retrySchedule = [];
   }
 
   async connect(eventId = null) {
@@ -65,6 +66,7 @@ export default class SSEClient {
   scheduleReconnect() {
     if (this.controller.signal.aborted || this.retrySchedule.length === 0) {
       this.isConnecting = false;
+      this.retrySchedule = []; // 如果是aborted需要清空重试队列
       return;
     }
 
