@@ -8,6 +8,7 @@ export default class SSEClient {
     this.eventHandlers = new Map();
     this.retrySchedule = [];
     this.isConnecting = false;
+    this.timeout = null;
   }
 
   addEventListener(event, handler) {
@@ -25,7 +26,12 @@ export default class SSEClient {
 
   async connect(eventId = null) {
     if (this.isConnecting) return;
+    if (this.timeout) clearTimeout(this.timeout);
     this.isConnecting = true;
+
+    this.timeout = setTimeout(() => {
+      this.handleTimeout();
+    }, this.options.timeout || 60000);
 
     try {
       this.controller = new AbortController();
@@ -67,6 +73,7 @@ export default class SSEClient {
     if (this.controller.signal.aborted || this.retrySchedule.length === 0) {
       this.isConnecting = false;
       this.retrySchedule = []; // 如果是aborted需要清空重试队列
+      this.timeout = null;
       return;
     }
 
@@ -110,6 +117,12 @@ export default class SSEClient {
   parseBuffer(buffer) {
     let eventEnd = buffer.indexOf('\n\n');
     let updatedBuffer = buffer;
+
+    // 接收到数据后，清除超时定时器
+    if (buffer && this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
 
     while (eventEnd !== -1) {
       const chunk = updatedBuffer.slice(0, eventEnd);
@@ -172,6 +185,15 @@ export default class SSEClient {
     }
   }
 
+  // 超时处理
+  handleTimeout() {
+    const timeoutHandler = this.eventHandlers.get('timeout');
+    if (timeoutHandler) {
+      timeoutHandler();
+    }
+  }
+
+  // 连接关闭处理
   handleClose(detail) {
     const closeHandler = this.eventHandlers.get('close');
     if (closeHandler) {
