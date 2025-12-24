@@ -1,0 +1,30 @@
+{
+  "name": "@dabobo/sandbox",
+  "version": "0.1.0-alpha.1",
+  "description": "A simple sandbox environment for html with js and styles.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abcrun/dabobo-toolkit",
+    "directory": "packages/simpleSandbox"
+  },
+  "main": "index.js",
+  "author": "hrdesign@163.com",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "Sandbox",
+    "HTML",
+    "vm",
+    "JAVASCRIPT",
+    "Security",
+    "iframe"
+  ],
+  "dependencies": {
+    "dompurify": "^3.3.1"
+  },
+  "bugs": {
+    "url": "https://github.com/abcrun/dabobo-toolkit/issues"
+  }
+}

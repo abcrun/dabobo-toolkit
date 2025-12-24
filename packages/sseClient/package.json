@@ -1,7 +1,7 @@
 {
   "name": "@dabobo/sse",
   "version": "0.1.0-rc.2",
-  "description": "Create Routes That The Path Is The File Location",
+  "description": "A simple SSE (Server-Sent Events) client for handling text/stream responses.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/abcrun/dabobo-toolkit",
@@ -14,14 +14,14 @@
     "access": "public"
   },
   "keywords": [
-    "Front End Engineering Scaffold",
-    "Auto Generate Router",
-    "Router",
-    "Layout",
-    "Build",
-    "Webpack",
-    "React",
-    "Vue"
+    "text/stream",
+    "stream",
+    "sse",
+    "server-sent-events",
+    "eventsource",
+    "post-message",
+    "agent",
+    "ai"
   ],
   "devDependencies": {
     "webpack-env": "^0.8.0"
