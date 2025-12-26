@@ -1,8 +1,9 @@
-const isConstructor = (fn) => fn.prototype && fn.prototype.constructor === fn;
+import { isConstructor } from '../utils.js';
 
 export default class Window {
   constructor(frame) {
     const { contentWindow: w } = frame;
+
     return new Proxy(w, {
       set(target, prop, value) {
         if (window[prop]) {

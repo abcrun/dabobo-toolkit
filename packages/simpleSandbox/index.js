@@ -1,23 +1,14 @@
 /* eslint-disable consistent-return */
 /* eslint-disable no-param-reassign */
-/* eslint-disable no-bitwise */
 import DOMPurify from 'dompurify';
+
+import {
+  uuid,
+  isExternalResource,
+  isScriptContentSafe,
+  isStyleContentSafe,
+} from './utils.js';
 import VM from './vm';
-
-const uuid = () => {
-  if (
-    typeof crypto !== 'undefined' &&
-    typeof crypto.randomUUID === 'function'
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
 
 const defaultOptions = {
   allowScripts: false,
@@ -50,43 +41,6 @@ class SecureSandbox {
     this.vm = new VM(iframe);
   }
 
-  static isStyleContentSafe(content) {
-    // 严格的危险模式检测
-    const dangerousPatterns = [
-      /@import/i,
-      /expression\s*\(/i,
-      /url\(\s*['"]?\s*javascript:/i,
-      /<script|<iframe|<object|<embed/i,
-    ];
-
-    return !dangerousPatterns.some((pattern) => pattern.test(content));
-  }
-
-  static isScriptContentSafe(content) {
-    // 更严格的危险模式检测
-    const dangerousPatterns = [
-      /window\.(?:top|parent|frames?|opener)/i,
-      /(?:window\.)?document\.(?:cookie|referrer|domain)/i,
-      /(?:window\.)?location\.(?:href|hash|assign)/i,
-      /(?:window\.)?history\.(?:pushState|replaceState)/i,
-      /(?:window\.)?localStorage|sessionStorage|indexedDB/i,
-      /(?:window\.)?eval\s*\(/i,
-      /<script|<iframe|<object|<embed/i,
-    ];
-
-    return !dangerousPatterns.some((pattern) => pattern.test(content));
-  }
-
-  static isExternalResource(url) {
-    if (!url) return false;
-    try {
-      const parsed = new URL(url, window.location.href);
-      return parsed.origin !== window.location.origin;
-    } catch {
-      return false;
-    }
-  }
-
   isAllowedDomain(url) {
     if (this.options.allowedDomains.length === 0) return true;
 
@@ -108,7 +62,7 @@ class SecureSandbox {
       ['src', 'href'].forEach((attr) => {
         if (node.hasAttribute(attr)) {
           const url = node.getAttribute(attr);
-          if (SecureSandbox.isExternalResource(url)) {
+          if (isExternalResource(url)) {
             if (!this.isAllowedDomain(url)) {
               node.removeAttribute(attr);
             } else {
@@ -124,7 +78,7 @@ class SecureSandbox {
       // 处理不安全的内联样式
       if (node.hasAttribute('style')) {
         const styles = node.getAttribute('style');
-        if (styles && !SecureSandbox.isStyleContentSafe(styles)) {
+        if (styles && !isStyleContentSafe(styles)) {
           node.removeAttribute('style');
         }
       }
@@ -237,7 +191,7 @@ class SecureSandbox {
       const styleText = style.textContent;
       if (!styleText) return;
 
-      if (!SecureSandbox.isStyleContentSafe(styleText)) {
+      if (!isStyleContentSafe(styleText)) {
         style.remove();
       } else {
         // 使用更可靠的 CSS 作用域化方法
@@ -275,14 +229,14 @@ class SecureSandbox {
           })
           .then((code) => {
             const content = code.trim();
-            if (content && SecureSandbox.isScriptContentSafe(content)) {
+            if (content && isScriptContentSafe(content)) {
               this.executeScriptsInSandbox(content, sid);
             }
           });
       } else {
         // 内联脚本
         const content = (script.textContent || script.value).trim();
-        if (content && SecureSandbox.isScriptContentSafe(content)) {
+        if (content && isScriptContentSafe(content)) {
           this.executeScriptsInSandbox(content, sid);
         }
       }
