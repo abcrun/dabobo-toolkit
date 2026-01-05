@@ -1,9 +1,8 @@
 import Window from './window.js';
 
 export default class VM {
-  constructor(frame) {
+  constructor(frame, documentScope) {
     this.iframe = frame;
-    this.window = new Window(frame);
-    // 其他的代理暂时先不需要
+    this.window = new Window(frame, documentScope);
   }
 }

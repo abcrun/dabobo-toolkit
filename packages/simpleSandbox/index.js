@@ -8,6 +8,7 @@ import {
   isScriptContentSafe,
   isStyleContentSafe,
 } from './utils.js';
+import enhancedElement from './enhancedElement.js';
 import VM from './vm';
 
 const defaultOptions = {
@@ -23,7 +24,13 @@ const defaultOptions = {
 
 class SecureSandbox {
   constructor(options = {}) {
+    const rid = `sandbox-root-${uuid().replace(/-/g, '')}`;
+
     this.options = { ...defaultOptions, ...options };
+    this.enhancedElement = this.options.allowScripts
+      ? enhancedElement(this)
+      : null;
+    this.rootid = rid;
     this.container = null;
     this.vm = null;
   }
@@ -38,7 +45,7 @@ class SecureSandbox {
     iframe.style.cssText = 'display:none;width:0;height:0;border:0;';
     document.body.appendChild(iframe);
 
-    this.vm = new VM(iframe);
+    this.vm = new VM(iframe, this.options.docScope);
   }
 
   isAllowedDomain(url) {
@@ -46,10 +53,15 @@ class SecureSandbox {
 
     try {
       const parsed = new URL(url, window.location.href);
-      return this.options.allowedDomains.some(
-        (domain) =>
-          parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`),
-      );
+      return this.options.allowedDomains.some((domain) => {
+        if (domain instanceof RegExp) {
+          return domain.test(parsed.hostname);
+        }
+
+        return (
+          parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`)
+        );
+      });
     } catch {
       return false;
     }
@@ -157,6 +169,7 @@ class SecureSandbox {
       'cellspacing',
       'colspan',
       'rowspan',
+      'hidden',
     ];
 
     if (this.options.allowStyles) ALLOWED_TAGS.push('style');
@@ -165,6 +178,7 @@ class SecureSandbox {
       ALLOWED_TAGS.push('iframe');
       ALLOWED_ATTR.push(
         'frameborder',
+        'scrolling',
         'allow',
         'sandbox',
         'allowfullscreen',
@@ -178,13 +192,13 @@ class SecureSandbox {
       ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#|data:image\/)/i, // 处理链接（如href、src）中的URI，防止JavaScript协议（如javascript:）的执行，只允许http、https、mailto、data:image安全协议
       ALLOW_DATA_ATTR: false, // 禁用data-*属性，如：<div data-user-input="<script>alert('XSS!');</script>"></div>，可以通过document.querySelector('div').dataset.userInput获取脚本，防止XSS攻击
       FORBID_TAGS: [...(this.options.forbidTags || [])],
-      FORBID_ATTR: ['on*', ...(this.options.forbidAttr || [])], // 移除内联JavaScript事件，防止跨站点脚本攻击，如<img src="xxx.jpg" onload="alert(1)" /> <audio onerror="alert('Error loading audio!');" src="xxx.mp3" controls></audio> 等
+      FORBID_ATTR: ['onError', ...(this.options.forbidAttr || [])], // 移除内联JavaScript事件，防止跨站点脚本攻击，如<img src="xxx.jpg" onload="alert(1)" /> <audio onerror="alert('Error loading audio!');" src="xxx.mp3" controls></audio> 等
       RETURN_DOM_FRAGMENT: true, // 默认返回DOMfragment对象
     };
   }
 
   // 安全的样式隔离
-  scopedStyles(styles, sid) {
+  scopedStyles(styles, sid = this.rootid) {
     if (!this.options.allowStyles) return;
 
     Array.from(styles).forEach((style) => {
@@ -212,17 +226,18 @@ class SecureSandbox {
   }
 
   // 异步加载和验证脚本
-  loadScripts(scripts, sid) {
+  loadScripts(scripts, sid = this.rootid) {
     if (!this.options.allowScripts) return;
     if (!this.vm) this.createIframeSandbox();
 
-    Array.from(scripts).forEach(async (script) => {
+    const list = Array.from(scripts);
+    while (list.length) {
+      const script = list.shift();
       if (script.src) {
         fetch(script.src)
           .then((response) => {
             if (!response.ok) {
-              console.error(`获取脚本代码失败: ${script.src}`);
-              return;
+              throw new Error(`获取脚本代码失败: ${script.src}`);
             }
 
             return response.text();
@@ -240,7 +255,7 @@ class SecureSandbox {
           this.executeScriptsInSandbox(content, sid);
         }
       }
-    });
+    }
   }
 
   executeScriptsInSandbox(code) {
@@ -277,9 +292,11 @@ class SecureSandbox {
 
   // 主处理方法
   processHTML(htmlContent) {
+    const rid = this.rootid;
+
     // 设置容器id
     const sid = `sandbox-${uuid().replace(/-/g, '')}`;
-    const wrappedContent = `<div class="sandbox-wrapper">${htmlContent}</div>`; // 为了安全，将htmlContent包裹在一层容器中,这很重要
+    const wrappedContent = `<div class="sandbox-wrapper ${sid}">${htmlContent}</div>`; // 为了安全，将htmlContent包裹在一层容器中,这很重要
 
     const cleanConfig = this.configureDOMPurify();
     const sanitized = DOMPurify.sanitize(wrappedContent, cleanConfig);
@@ -291,10 +308,15 @@ class SecureSandbox {
     if (scripts.length) this.loadScripts(scripts, sid);
 
     const container = document.createElement('div');
-    container.className = sid;
+    container.className = `${rid}`;
     container.appendChild(sanitized);
 
     return container.outerHTML;
+  }
+
+  destroy() {
+    // 恢复Element拦截的属性
+    this.element?.enhancedElement();
   }
 }
 

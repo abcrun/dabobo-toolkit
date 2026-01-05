@@ -14,12 +14,34 @@ export const uuid = () => {
   });
 };
 
+// 定义危险属性模式
+export const dangerousAttributes = {
+  // 事件处理器
+  eventHandlers: /^on[a-z]+/i,
+  // 脚本执行
+  scriptProtocol: /^javascript:/i,
+  // 危险样式表达式
+  expression: /expression\s*\(/i,
+  // 数据协议（可配置）
+  dataProtocol: /^data:/i,
+  // 其他危险属性
+  dangerousProps: [
+    'src',
+    'href',
+    'action',
+    'formaction',
+    'poster',
+    'srcset',
+    'background',
+    'lowsrc',
+  ],
+};
+
 export const isStyleContentSafe = (content) => {
   const dangerousPatterns = [
     /@import/i,
     /expression\s*\(/i,
     /url\(\s*['"]?\s*javascript:/i,
-    /<script|<iframe|<object|<embed/i,
   ];
 
   return !dangerousPatterns.some((pattern) => pattern.test(content));

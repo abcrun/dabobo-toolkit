@@ -1,7 +1,9 @@
 import { isConstructor } from '../utils.js';
 
+import Document from './document.js';
+
 export default class Window {
-  constructor(frame) {
+  constructor(frame, documentScope) {
     const { contentWindow: w } = frame;
 
     return new Proxy(w, {
@@ -24,7 +26,7 @@ export default class Window {
           case 'window':
             return w;
           case 'document':
-            return window.document;
+            return new Document(frame, documentScope);
           case 'localStorage':
           case 'sessionStorage':
             return null;
