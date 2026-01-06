@@ -22,6 +22,7 @@
 
  const sandbox = new SecureSandbox(options);
  ```
+ - `docScope` (string): 允许沙箱内 js 操作 document/elment 对象的 selector 字符串.
  - `allowScripts` (boolean): 是否允许脚本执行，默认 false。
  - `allowIframes` (boolean): 是否允许 iframe 标签，默认 false。
  - `allowStyles` (boolean): 是否允许 style 标签，默认 true。
@@ -48,9 +49,10 @@
 
  ## 示例
  ```js
- import SecureSandbox from './index.js';
+ import SecureSandbox from '@dabobo/sandbox';
 
  const sandbox = new SecureSandbox({
+   docScope: '.sandbox-box',
    allowScripts: true,
    allowedDomains: ['trusted.com'],
  });
