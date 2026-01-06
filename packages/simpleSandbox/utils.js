@@ -56,6 +56,7 @@ export const isScriptContentSafe = (content) => {
     /(?:window\.)?localStorage|sessionStorage|indexedDB/i,
     /(?:window\.)?eval\s*\(/i,
     /<script|<iframe|<object|<embed/i,
+    // /<[^<>]+on[a-z]+=/i, // 脚本中如果通过innerHTML添加元素绑定了on*事件
   ];
 
   return !dangerousPatterns.some((pattern) => pattern.test(content));

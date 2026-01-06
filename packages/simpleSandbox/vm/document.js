@@ -5,7 +5,7 @@ export default class Document {
     return new Proxy(w.document, {
       set(target, prop, value, receiver) {
         if (prop === 'cookie' || prop === 'domain' || prop === 'referrer') {
-          console.log(`禁止设置 document.${prop} 属性`);
+          console.log(`禁止在沙箱内设置 document.${prop} 属性`);
           return true;
         }
 
@@ -28,7 +28,7 @@ export default class Document {
         }
 
         if (prop === 'cookie' || prop === 'domain' || prop === 'referrer') {
-          console.log(`禁止访问 document.${prop} 属性`);
+          console.log(`禁止在沙箱内访问 document.${prop} 属性`);
           return '';
         }
 

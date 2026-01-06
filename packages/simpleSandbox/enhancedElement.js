@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import { dangerousAttributes } from './utils.js';
 
 const isInSandbox = (element) => element.dataset.createdInSandbox === 'true';
@@ -12,6 +13,7 @@ const originals = {
   append: Element.prototype.append,
   insertBefore: Element.prototype.insertBefore,
   setAttribute: Element.prototype.setAttribute,
+  attachShadow: Element.prototype.attachShadow,
   innerHTML: Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML'),
   outerHTML: Object.getOwnPropertyDescriptor(Element.prototype, 'outerHTML'),
 };
@@ -181,31 +183,127 @@ const enhancedElement = (sandbox) => {
     return originals.setAttribute.call(this, name, value);
   };
 
-  // 处理outerHTML
-  Object.defineProperty(Element.prototype, 'outerHTML', {
-    set(value) {
-      if (isInSandbox(this)) {
-        const cleanHTML = sandbox.processHTML(value);
-        originals.outerHTML.set.call(this, cleanHTML);
-      } else {
-        originals.outerHTML.set.call(this, value);
-      }
-    },
-    get: originals.outerHTML.get,
+  // 处理innerHTML 和 outerHTML
+  ['innerHTML', 'outerHTML'].forEach((prop) => {
+    Object.defineProperty(Element.prototype, prop, {
+      set(value) {
+        if (isInSandbox(this)) {
+          const cleanHTML = sandbox.processHTML(value);
+          originals[prop].set.call(this, cleanHTML);
+        } else {
+          originals[prop].set.call(this, value);
+        }
+      },
+      get: originals[prop].get,
+    });
   });
 
-  // 处理innerHTML
-  Object.defineProperty(Element.prototype, 'innerHTML', {
-    set(value) {
-      if (isInSandbox(this)) {
-        const cleanHTML = sandbox.processHTML(value);
-        originals.innerHTML.set.call(this, cleanHTML);
-      } else {
-        originals.innerHTML.set.call(this, value);
-      }
-    },
-    get: originals.innerHTML.get,
-  });
+  // 处理shadow DOM - 逻辑待整合优化
+  Element.prototype.attachShadow = function (options) {
+    const isInSandboxFlag = isInSandbox(this);
+    const shadowRoot = originals.attachShadow.call(this, options);
+
+    return new Proxy(shadowRoot, {
+      get(target, prop) {
+        if (prop === 'appendChild') {
+          return function (child) {
+            if (isInSandboxFlag) {
+              const tagName = getTagName(child);
+
+              switch (tagName) {
+                case 'SCRIPT':
+                  sandbox.loadScript([child]);
+                  return child;
+
+                case 'STYLE':
+                  sandbox.scopedStyles([child]);
+                  return target.appendChild(child);
+
+                case 'LINK':
+                  throw new Error('禁止在沙箱内加载外部样式资源');
+
+                case 'IFRAME':
+                  throw new Error('禁止在沙箱内创建 iframe 元素');
+
+                default:
+                  return target.appendChild(child);
+              }
+            }
+            // 自定义逻辑
+            return target.appendChild(child);
+          };
+        }
+
+        if (prop === 'append') {
+          return function (...nodes) {
+            if (isInSandboxFlag) {
+              const filteredNodes = [];
+
+              nodes.forEach((node) => {
+                const tagName = getTagName(node);
+
+                if (tagName === 'SCRIPT') {
+                  sandbox.loadScript([node]);
+                } else if (tagName === 'STYLE') {
+                  sandbox.scopedStyles([node]);
+                  filteredNodes.push(node);
+                } else if (tagName === 'LINK') {
+                  throw new Error('禁止在沙箱内加载外部样式资源');
+                } else if (tagName === 'IFRAME') {
+                  throw new Error('禁止在沙箱内创建 iframe 元素');
+                } else {
+                  filteredNodes.push(node);
+                }
+              });
+
+              return target.append(...filteredNodes);
+            }
+            return target.append(...nodes);
+          };
+        }
+
+        if (prop === 'insertBefore') {
+          return function (newNode, referenceNode) {
+            if (isInSandboxFlag) {
+              const tagName = getTagName(newNode);
+
+              if (tagName === 'SCRIPT') {
+                sandbox.loadScript([newNode]);
+                return newNode;
+              }
+              if (tagName === 'STYLE') {
+                sandbox.scopedStyles([newNode]);
+                return target.insertBefore(newNode, referenceNode);
+              }
+              if (tagName === 'LINK') {
+                throw new Error('禁止在沙箱内加载外部样式资源');
+              }
+              if (tagName === 'IFRAME') {
+                throw new Error('禁止在沙箱内创建 iframe 元素');
+              }
+            }
+            return target.insertBefore(newNode, referenceNode);
+          };
+        }
+
+        return target[prop];
+      },
+
+      set(target, prop, value) {
+        // 对innerHTML和outerHTML进行处理
+        if (prop === 'innerHTML' || prop === 'outerHTML') {
+          if (isInSandboxFlag) {
+            const cleanHTML = sandbox.processHTML(value);
+            target[prop] = cleanHTML;
+            return true;
+          }
+        }
+
+        target[prop] = value;
+        return true;
+      },
+    });
+  };
 
   // 提供恢复方法
   return () => {

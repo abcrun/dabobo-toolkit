@@ -1,6 +1,6 @@
 {
   "name": "@dabobo/sandbox",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "A simple sandbox environment for html with js and styles.",
   "repository": {
     "type": "git",
@@ -15,6 +15,7 @@
   },
   "keywords": [
     "Sandbox",
+    "DOMPurify",
     "HTML",
     "vm",
     "JAVASCRIPT",

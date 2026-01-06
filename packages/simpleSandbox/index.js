@@ -16,10 +16,6 @@ const defaultOptions = {
   allowIframes: false,
   allowStyles: true,
   allowedDomains: [],
-  ALLOWED_TAGS: [],
-  ALLOWED_ATTR: [],
-  FORBID_ATTR: [],
-  RETURN_DOM_FRAGMENT: true,
 };
 
 class SecureSandbox {
@@ -27,6 +23,7 @@ class SecureSandbox {
     const rid = `sandbox-root-${uuid().replace(/-/g, '')}`;
 
     this.options = { ...defaultOptions, ...options };
+    this.config = this.configureDOMPurify();
     this.enhancedElement = this.options.allowScripts
       ? enhancedElement(this)
       : null;
@@ -191,8 +188,7 @@ class SecureSandbox {
       ALLOWED_ATTR: [...ALLOWED_ATTR, ...(this.options.allowedAttrs || [])],
       ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#|data:image\/)/i, // 处理链接（如href、src）中的URI，防止JavaScript协议（如javascript:）的执行，只允许http、https、mailto、data:image安全协议
       ALLOW_DATA_ATTR: false, // 禁用data-*属性，如：<div data-user-input="<script>alert('XSS!');</script>"></div>，可以通过document.querySelector('div').dataset.userInput获取脚本，防止XSS攻击
-      FORBID_TAGS: [...(this.options.forbidTags || [])],
-      FORBID_ATTR: ['onError', ...(this.options.forbidAttr || [])], // 移除内联JavaScript事件，防止跨站点脚本攻击，如<img src="xxx.jpg" onload="alert(1)" /> <audio onerror="alert('Error loading audio!');" src="xxx.mp3" controls></audio> 等
+      // FORBID_ATTR: [...(this.options.forbidAttr || [])], // DOMPurifym默认不允许内联JavaScript事件，此处不用说何止，这样可以防止跨站点脚本攻击，如<img src="xxx.jpg" onload="alert(1)" /> <audio onerror="alert('Error loading audio!');" src="xxx.mp3" controls></audio> 等
       RETURN_DOM_FRAGMENT: true, // 默认返回DOMfragment对象
     };
   }
@@ -246,6 +242,8 @@ class SecureSandbox {
             const content = code.trim();
             if (content && isScriptContentSafe(content)) {
               this.executeScriptsInSandbox(content, sid);
+            } else {
+              console.warn(`沙箱内禁止执行不安全的外部脚本: ${script.src}`);
             }
           });
       } else {
@@ -253,6 +251,8 @@ class SecureSandbox {
         const content = (script.textContent || script.value).trim();
         if (content && isScriptContentSafe(content)) {
           this.executeScriptsInSandbox(content, sid);
+        } else {
+          console.warn('沙箱内禁止执行不安全的内联脚本');
         }
       }
     }
@@ -298,8 +298,7 @@ class SecureSandbox {
     const sid = `sandbox-${uuid().replace(/-/g, '')}`;
     const wrappedContent = `<div class="sandbox-wrapper ${sid}">${htmlContent}</div>`; // 为了安全，将htmlContent包裹在一层容器中,这很重要
 
-    const cleanConfig = this.configureDOMPurify();
-    const sanitized = DOMPurify.sanitize(wrappedContent, cleanConfig);
+    const sanitized = DOMPurify.sanitize(wrappedContent, this.config);
 
     const styles = sanitized.querySelectorAll('style');
     if (styles.length) this.scopedStyles(styles, sid);

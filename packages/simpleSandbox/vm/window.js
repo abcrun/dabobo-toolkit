@@ -5,16 +5,18 @@ import Document from './document.js';
 export default class Window {
   constructor(frame, documentScope) {
     const { contentWindow: w } = frame;
+    window.$sandbox = {};
 
     return new Proxy(w, {
       set(target, prop, value) {
-        if (window[prop]) {
+        if (window.$sandbox[prop]) {
           console.log(`父容器已经存在 ${prop.toString()} 属性或者方法`);
         } else {
-          window[prop] = value;
+          window.$sandbox[prop] = value;
         }
 
         w[prop] = value;
+
         return true;
       },
       get(target, prop) {
