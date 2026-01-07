@@ -1,6 +1,6 @@
 {
   "name": "@dabobo/sse",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0",
   "description": "A simple SSE (Server-Sent Events) client for handling text/stream responses.",
   "repository": {
     "type": "git",
