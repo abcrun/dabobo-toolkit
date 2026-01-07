@@ -310,6 +310,8 @@ const enhancedElement = (sandbox) => {
     Element.prototype.appendChild = originals.appendChild;
     Element.prototype.append = originals.append;
     Element.prototype.insertBefore = originals.insertBefore;
+    Element.prototype.setAttribute = originals.setAttribute;
+    Element.prototype.attachShadow = originals.attachShadow;
     Object.defineProperty(Element.prototype, 'innerHTML', originals.innerHTML);
     Object.defineProperty(Element.prototype, 'outerHTML', originals.outerHTML);
   };

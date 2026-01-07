@@ -44,12 +44,35 @@ export default class Document {
           return (...args) => {
             const elm = window.document[prop](...args);
 
+            if (elm == null) {
+              return elm;
+            }
+
+            if (elm instanceof NodeList || elm instanceof HTMLCollection) {
+              const filtered = Array.from(elm).filter((item) =>
+                item.closest(documentScope),
+              );
+
+              if (filtered.length !== elm.length) {
+                throw new Error(
+                  `禁止在沙箱中访问 "${[...args].join(',')}" 元素`,
+                );
+              }
+
+              filtered.forEach((item) => {
+                item.dataset.createdInSandbox = 'true';
+              });
+
+              return filtered;
+            }
+
             if (elm.closest && elm.closest(documentScope)) {
               elm.dataset.createdInSandbox = 'true';
 
               return elm;
             }
-            throw new Error(`禁止在沙箱中访问 "${args[0]}" 元素`);
+
+            throw new Error(`禁止在沙箱中访问 "${[...args].join(',')}" 元素`);
           };
         }
 

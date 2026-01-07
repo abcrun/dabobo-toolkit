@@ -54,7 +54,7 @@ export const isScriptContentSafe = (content) => {
     /(?:window\.)?location\.(?:href|hash|assign)/i,
     /(?:window\.)?history\.(?:pushState|replaceState)/i,
     /(?:window\.)?localStorage|sessionStorage|indexedDB/i,
-    /(?:window\.)?eval\s*\(/i,
+    /(?:window\.)?(?:alert|eval\s*)\(/i,
     /<script|<iframe|<object|<embed/i,
     // /<[^<>]+on[a-z]+=/i, // 脚本中如果通过innerHTML添加元素绑定了on*事件
   ];

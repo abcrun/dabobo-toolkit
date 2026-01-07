@@ -22,30 +22,79 @@
 
  const sandbox = new SecureSandbox(options);
  ```
- - `docScope` (string): 允许沙箱内 js 操作 document/elment 对象的 selector 字符串.
  - `allowScripts` (boolean): 是否允许脚本执行，默认 false。
  - `allowIframes` (boolean): 是否允许 iframe 标签，默认 false。
  - `allowStyles` (boolean): 是否允许 style 标签，默认 true。
  - `allowedDomains` (string[] | RegExp[]): 允许外部资源的域名白名单。
+ - `docScope` (string): 限制沙箱内 js 操作 document/elment 元素，必须在指定的 `docScope`(css selector) 内部进行 DOM 操作。
  - `allowedTags` (string[]): 额外允许的标签。
  - `allowedAttrs` (string[]): 额外允许的属性。
+
+当设置 `allowScripts: true` 时，代码内是禁止通过 JS 设置如下危险属性，同时我们也不允许在沙箱内部通过 JS 创建 `LINK` 和 `IFRAME` 元素。
+
+```js
+const dangerousAttributes = {
+  // 事件处理器
+  eventHandlers: /^on[a-z]+/i,
+  // 脚本执行
+  scriptProtocol: /^javascript:/i,
+  // 危险样式表达式
+  expression: /expression\s*\(/i,
+  // 数据协议（可配置）
+  dataProtocol: /^data:/i,
+  // 其他危险属性
+  dangerousProps: [
+    'src',
+    'href',
+    'action',
+    'formaction',
+    'poster',
+    'srcset',
+    'background',
+    'lowsrc',
+  ],
+};
+```
+
+另外如果解析的HTML包含 CSS 样式和内联的 JS 代码，还需要满足以下约束：
+
+```js
+const isStyleContentSafe = (content) => {
+  const dangerousPatterns = [
+    /@import/i,
+    /expression\s*\(/i,
+    /url\(\s*['"]?\s*javascript:/i,
+  ];
+
+  return !dangerousPatterns.some((pattern) => pattern.test(content));
+};
+
+const isScriptContentSafe = (content) => {
+  const dangerousPatterns = [
+    /window\.(?:top|parent|frames?|opener)/i,
+    /(?:window\.)?document\.(?:cookie|referrer|domain)/i,
+    /(?:window\.)?location\.(?:href|hash|assign)/i,
+    /(?:window\.)?history\.(?:pushState|replaceState)/i,
+    /(?:window\.)?localStorage|sessionStorage|indexedDB/i,
+    /(?:window\.)?(?:alert|eval\s*)\(/i,
+    /<script|<iframe|<object|<embed/i,
+    // /<[^<>]+on[a-z]+=/i,
+  ];
+
+  return !dangerousPatterns.some((pattern) => pattern.test(content));
+};
+```
 
  ## 主要方法
  ### processHTML(htmlContent)
  安全处理并渲染 HTML 内容。
  ```js
- const safeHtml = sandbox.processHTML('<div><script>alert(1)</script></div>');
+ const safeHtml = sandbox.processHTML('<div>Hello World<script>alert(1)</script></div>');
  ```
  返回安全的 HTML 字符串。
 
  ### destroy()
  销毁沙箱，恢复拦截的属性。
-
- ## 关键实现说明
- - **DOMPurify 配置**：通过 afterSanitizeAttributes 钩子处理 src、href、style 等属性，自动去除不安全内容。
- - **样式隔离**：将 style 内容作用域化，防止全局污染。
- - **脚本执行**：仅在 allowScripts 为 true 时，异步加载并在 iframe 沙箱中执行安全脚本。
- - **外部资源校验**：仅允许白名单域名的资源。
 
  ## 示例
  ```js
