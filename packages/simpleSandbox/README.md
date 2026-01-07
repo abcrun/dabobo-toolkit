@@ -78,7 +78,7 @@ const isScriptContentSafe = (content) => {
     /(?:window\.)?localStorage|sessionStorage|indexedDB/i,
     /(?:window\.)?(?:alert|eval\s*)\(/i,
     /<script|<iframe|<object|<embed/i,
-    /<[^<>]+on[a-z]+=/i,
+    // /<[^<>]+on[a-z]+=/i,
   ];
 
   return !dangerousPatterns.some((pattern) => pattern.test(content));
