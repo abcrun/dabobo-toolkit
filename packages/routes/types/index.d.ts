@@ -28,10 +28,16 @@ declare module "@dabobo/routes" {
   export type RoutesTreeArray = RouteFlatNode[];
   
 
+
+  /**
+   * @param context Webpack 的 require.context 对象
+   * @param reg (可选) 用于过滤文件的正则表达式
+   * @param interceptor (可选) 拦截器函数，接收每个路由信息（RouteFlatNode），可返回部分修改或void
+   */
   declare function createRoutes(
     context: Context,
     reg?: RegExp,
-    handler?: (key: string) => any
+    interceptor?: (route: RouteFlatNode) => Partial<RouteFlatNode> | void
   ): {
     routes: Routes;
     routesTreeArray: RoutesTreeArray;

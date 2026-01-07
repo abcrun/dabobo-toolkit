@@ -1,6 +1,6 @@
 {
   "name": "@dabobo/routes",
-  "version": "2.0.0-rc.2",
+  "version": "2.0.0",
   "description": "Create Routes That The Path Is The File Location",
   "repository": {
     "type": "git",

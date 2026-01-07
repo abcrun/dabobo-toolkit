@@ -12,6 +12,7 @@ npm install @dabobo/routes
 
 ## 使用方法
 
+
 在您的项目中导入并使用 `createRoutes` 函数：
 
 ```js
@@ -19,10 +20,16 @@ import createRoutes from '@dabobo/routes';
 
 // 示例 context
 const context = require.context('./pages', true, /\.page\.js$/);
+// const context = import.meta.glob('./views/**/*.vue');
 
-// 创建路由
-const { routes, routesTreeArray } = createRoutes(context, (key) => {
-  return context(`./pages${key.substring(1)}`).default; // React可以是 React.lazy(() => import(`./pages${key.substring(1)}`)),
+// 创建路由，使用interceptor拦截和修改每个路由信息
+const { routes, routesTreeArray } = createRoutes(context, (route) => {
+    // 可在此处对每个路由对象进行自定义处理
+    // 例如：添加meta信息，或修改component对象等
+    return {
+        ...route,
+        meta: { requiresAuth: true },
+    };
 });
 
 console.log(routes);
@@ -31,13 +38,17 @@ console.log(routesTreeArray);
 
 ## API
 
-`createRoutes(context, [reg], [handler])`
+
+`createRoutes(context, [reg], [interceptor])`
+
 
 ##### 参数
 
 * `context`：Webpack 的 `require.context` 对象。
 * `reg` (可选)：正则表达式，用于过滤文件。
-* `handler` 函数(可选)：接收文件路径的 `key`，返回key对应的组件；如果为空，则不返回组件。
+* `interceptor` (可选)：拦截器函数，接收每个路由信息（包含 path、id、key、parentId、redirect、component 等），可对其进行修改并返回新的路由对象。
+
+> ⚠️ 说明：如果只传递一个函数作为第二参数，则会被视为 `interceptor`。
 
 ##### 返回值
 
